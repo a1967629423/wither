@@ -34,7 +34,7 @@ const MONGO_DIFF_INDEX_BLACKLIST: [&str; 3] = ["v", "ns", "key"];
 #[async_trait]
 pub trait Model
 where
-    Self: Unpin + Serialize + DeserializeOwned,
+    Self: Serialize + DeserializeOwned,
 {
     /// The name of the collection where this model's data is stored.
     const COLLECTION_NAME: &'static str;
@@ -78,7 +78,7 @@ where
     ///
     /// This method uses the model's `selection_criteria`, `read_concern` & `write_concern` when
     /// constructing the collection handle.
-    fn collection<T>(db: &Database) -> Collection<T> {
+    fn collection(db: &Database) -> Collection<Document> {
         db.collection_with_options(
             Self::COLLECTION_NAME,
             options::CollectionOptions::builder()
@@ -335,12 +335,12 @@ where
 }
 
 /// Get current collection indexes, if any.
-async fn get_current_indexes<T>(db: &Database, coll: &Collection<T>) -> Result<HashMap<String, IndexModel>> {
+async fn get_current_indexes(db: &Database, coll: &Collection<Document>) -> Result<HashMap<String, IndexModel>> {
     let list_indexes = match db.run_command(doc! {"listIndexes": coll.name()}, None).await {
         Ok(list_indexes) => list_indexes,
         Err(err) => match err.kind.as_ref() {
             // The DB & or collection does not yet exist. Move on.
-            mongodb::error::ErrorKind::CommandError(err) if err.code == 26 => doc! {},
+            mongodb::error::ErrorKind::Command(err) if err.code == 26 => doc! {},
             _ => return Err(err.into()),
         },
     };
@@ -420,8 +420,8 @@ fn build_index_map(list_index: Document) -> HashMap<String, IndexModel> {
     index_map
 }
 
-async fn sync_model_indexes<'a,T>(
-    db: &'a Database, coll: &'a Collection<T>, model_indexes: Vec<IndexModel>, current_indexes_map: HashMap<String, IndexModel>,
+async fn sync_model_indexes<'a>(
+    db: &'a Database, coll: &'a Collection<Document>, model_indexes: Vec<IndexModel>, current_indexes_map: HashMap<String, IndexModel>,
 ) -> Result<()> {
     log::info!("Synchronizing indexes for '{}'.", coll.namespace());
 

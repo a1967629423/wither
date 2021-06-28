@@ -99,7 +99,7 @@ pub struct Fixture {
 impl Fixture {
     /// Create a new fixture.
     pub async fn new() -> Self {
-        let client = Client::with_uri_str(&CONNECTION_STRING).await.expect("failed to connect to database");
+        let client = Client::with_uri_str(CONNECTION_STRING.as_str()).await.expect("failed to connect to database");
         Fixture { client }
     }
 

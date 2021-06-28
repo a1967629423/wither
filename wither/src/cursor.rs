@@ -3,18 +3,19 @@ use std::task::{Context, Poll};
 
 use futures::stream::Stream;
 use mongodb::Cursor;
+use mongodb::bson::Document;
 
 use crate::error::{Result, WitherError};
 use crate::Model;
 
 /// A cursor of model documents.
 pub struct ModelCursor<T> {
-    cursor: Cursor,
+    cursor: Cursor<Document>,
     marker: std::marker::PhantomData<T>,
 }
 
 impl<T: Model> ModelCursor<T> {
-    pub(crate) fn new(cursor: Cursor) -> Self {
+    pub(crate) fn new(cursor: Cursor<Document>) -> Self {
         Self {
             cursor,
             marker: std::marker::PhantomData,
